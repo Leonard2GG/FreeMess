@@ -84,4 +84,25 @@ class DatabaseHelper {
     final db = await this.db;
     await db.insert('chat_participants', {'chat_id': chatId, 'user_id': userId});
   }
+
+  Future<List<AppUser>> getParticipantsByChat(String chatId) async {
+    final db = await this.db;
+    final List<Map<String, dynamic>> participantMaps = await db.query(
+      'chat_participants',
+      where: 'chat_id = ?',
+      whereArgs: [chatId],
+    );
+    if (participantMaps.isEmpty) return [];
+
+    // Obtener los IDs de usuario
+    final userIds = participantMaps.map((e) => e['user_id'] as String).toList();
+
+    // Buscar los usuarios en la tabla users
+    final List<Map<String, dynamic>> userMaps = await db.query(
+      'users',
+      where: 'id IN (${List.filled(userIds.length, '?').join(',')})',
+      whereArgs: userIds,
+    );
+    return userMaps.map((map) => AppUser.fromMap(map)).toList();
+  }
 }

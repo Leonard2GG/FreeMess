@@ -3,12 +3,14 @@ class Message {
   final String senderId;
   final String text;
   final int timestamp;
+  final String? status;
 
-  Message({
+    Message({
     required this.chatId,
     required this.senderId,
     required this.text,
     required this.timestamp,
+    required this.status,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +28,7 @@ class Message {
       senderId: map['sender_id'],
       text: map['text'],
       timestamp: map['timestamp'],
+      status: map['status'],
     );
   }
 }
