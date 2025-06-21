@@ -111,20 +111,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 leading: const Icon(Icons.person_add, color: Color(0xFF229ED9)),
                 title: const Text('Nueva conversación'),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(context); // Cierra el modal de opciones
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => SearchContactsScreen(
                         onSelect: (contact) async {
                           final dbHelper = DatabaseHelper();
-                          // Buscar si ya existe un chat individual con ese contacto
                           final existingChats = chats.where((chat) =>
                             !chat.id.startsWith('group_') &&
                             (chat.name == contact || chat.name == userName)
                           );
+                          Navigator.pop(context); // Cierra SearchContactsScreen
                           if (existingChats.isNotEmpty) {
-                            // Ya existe, navega a ese chat
                             final chat = existingChats.first;
                             Navigator.push(
                               context,
@@ -133,7 +132,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                           } else {
-                            // No existe, crea uno nuevo y navega
                             final chat = Chat(id: 'chat_${DateTime.now().millisecondsSinceEpoch}', name: contact);
                             await dbHelper.insertChat(chat);
                             await dbHelper.addParticipantToChat(chat.id, 'current_user');
