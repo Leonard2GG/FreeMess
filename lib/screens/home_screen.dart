@@ -30,14 +30,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final dbHelper = DatabaseHelper();
     chats = await dbHelper.getAllChats();
     // Ordena los chats para que el más reciente esté primero
-    chats.sort((a, b) => b.id.compareTo(a.id));// Si usas timestamp en el id
-    //chats.sort((a, b) => b.timestamp.compareTo(a.timestamp)); 
+    //chats.sort((a, b) => b.id.compareTo(a.id));// Si usas timestamp en el id
+    chats.sort((a, b) => b.timestamp.compareTo(a.timestamp)); 
     setState(() {});
   }
 
   void createChat(String name) async {
     final dbHelper = DatabaseHelper();
-    final chat = Chat(id: 'chat_${DateTime.now().millisecondsSinceEpoch}', name: name);
+    final chat = Chat(
+      id: 'chat_${DateTime.now().millisecondsSinceEpoch}',
+      name: name,
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+    );
     await dbHelper.insertChat(chat);
     await dbHelper.addParticipantToChat(chat.id, 'current_user');
     loadChats();
@@ -45,7 +49,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void createGroup(String name, List<String> participants) async {
     final dbHelper = DatabaseHelper();
-    final chat = Chat(id: 'group_${DateTime.now().millisecondsSinceEpoch}', name: name);
+    final chat = Chat(
+      id: 'group_${DateTime.now().millisecondsSinceEpoch}',
+      name: name,
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+    );
     await dbHelper.insertChat(chat);
     await dbHelper.addParticipantToChat(chat.id, 'current_user');
     for (var p in participants) {
@@ -71,7 +79,11 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     } else {
       // No existe, crea uno nuevo y navega
-      final chat = Chat(id: 'chat_${DateTime.now().millisecondsSinceEpoch}', name: contact);
+      final chat = Chat(
+        id: 'chat_${DateTime.now().millisecondsSinceEpoch}',
+        name: contact,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
       await dbHelper.insertChat(chat);
       await dbHelper.addParticipantToChat(chat.id, 'current_user');
       await dbHelper.addParticipantToChat(chat.id, contact);
@@ -138,7 +150,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                           } else {
-                            final chat = Chat(id: 'chat_${DateTime.now().millisecondsSinceEpoch}', name: contact);
+                            final chat = Chat(
+                              id: 'chat_${DateTime.now().millisecondsSinceEpoch}',
+                              name: contact,
+                              timestamp: DateTime.now().millisecondsSinceEpoch,
+                            );
                             await dbHelper.insertChat(chat);
                             await dbHelper.addParticipantToChat(chat.id, 'current_user');
                             await dbHelper.addParticipantToChat(chat.id, contact);

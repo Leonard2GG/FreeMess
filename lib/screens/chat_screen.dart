@@ -56,6 +56,8 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       final dbHelper = DatabaseHelper();
       await dbHelper.addMessage(message);
+      // Actualiza el timestamp del chat
+      await dbHelper.updateChatTimestamp(widget.chatId, message.timestamp);
       loadMessages();
       _controller.clear();
     }

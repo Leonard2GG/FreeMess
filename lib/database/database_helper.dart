@@ -43,6 +43,10 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       await db.execute("ALTER TABLE messages ADD COLUMN status TEXT");
     }
+    // Agrega esto para la columna timestamp en chats
+    if (oldVersion < 3) {
+      await db.execute("ALTER TABLE chats ADD COLUMN timestamp INTEGER");
+    }
   }
 
   // CRUD Usuarios
@@ -130,5 +134,15 @@ class DatabaseHelper {
     // Opcional: elimina también los mensajes y participantes relacionados
     await db.delete('messages', where: 'chat_id = ?', whereArgs: [chatId]);
     await db.delete('chat_participants', where: 'chat_id = ?', whereArgs: [chatId]);
+  }
+
+  Future<void> updateChatTimestamp(String chatId, int timestamp) async {
+    final db = await this.db;
+    await db.update(
+      'chats',
+      {'timestamp': timestamp},
+      where: 'id = ?',
+      whereArgs: [chatId],
+    );
   }
 }
