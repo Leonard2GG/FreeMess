@@ -116,8 +116,36 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => SearchContactsScreen(
-                        onSelect: (contact) {
-                          startConversation(contact);
+                        onSelect: (contact) async {
+                          final dbHelper = DatabaseHelper();
+                          // Buscar si ya existe un chat individual con ese contacto
+                          final existingChats = chats.where((chat) =>
+                            !chat.id.startsWith('group_') &&
+                            (chat.name == contact || chat.name == userName)
+                          );
+                          if (existingChats.isNotEmpty) {
+                            // Ya existe, navega a ese chat
+                            final chat = existingChats.first;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
+                              ),
+                            );
+                          } else {
+                            // No existe, crea uno nuevo y navega
+                            final chat = Chat(id: 'chat_${DateTime.now().millisecondsSinceEpoch}', name: contact);
+                            await dbHelper.insertChat(chat);
+                            await dbHelper.addParticipantToChat(chat.id, 'current_user');
+                            await dbHelper.addParticipantToChat(chat.id, contact);
+                            loadChats();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
+                              ),
+                            );
+                          }
                         },
                       ),
                     ),
@@ -297,6 +325,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  // The _buildContactTile method has been removed because HomeScreen does not have an onSelect property or method.
 
   @override
   Widget build(BuildContext context) {

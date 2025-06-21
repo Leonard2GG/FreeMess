@@ -38,7 +38,6 @@ class _SearchContactsScreenState extends State<SearchContactsScreen> {
     return GestureDetector(
       onTap: () {
         widget.onSelect(contact);
-        Navigator.pop(context);
       },
       child: Card(
         elevation: 0,
