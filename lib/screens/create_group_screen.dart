@@ -37,6 +37,108 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     super.dispose();
   }
 
+  void _showCustomSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Color(0xFF229ED9)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Color(0xFF222B45),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        behavior: SnackBarBehavior.floating,
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF229ED9), width: 1.2),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _createGroup() {
+    final name = nameController.text.trim();
+    if (name.isEmpty) {
+      _showCustomSnackBar('Por favor ingresa el nombre del grupo');
+      return;
+    }
+    if (selectedContacts.isEmpty) {
+      _showCustomSnackBar('Selecciona al menos un integrante');
+      return;
+    }
+    widget.onCreate(name, selectedContacts);
+    Navigator.pop(context);
+  }
+
+  Widget _buildContactTile(String contact) {
+    final selected = selectedContacts.contains(contact);
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (selected) {
+            selectedContacts.remove(contact);
+          } else {
+            selectedContacts.add(contact);
+          }
+        });
+      },
+      child: Card(
+        elevation: 0,
+        margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        color: selected ? const Color(0xFFE3F4FB) : Colors.white,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          leading: CircleAvatar(
+            radius: 26,
+            backgroundColor: const Color(0xFF229ED9),
+            child: Text(
+              contact.isNotEmpty ? contact[0].toUpperCase() : '',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+            ),
+          ),
+          title: Text(
+            contact,
+            style: const TextStyle(
+              fontSize: 18,
+              color: Color(0xFF222B45),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          trailing: selected
+              ? Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF229ED9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.all(6),
+                  child: const Icon(Icons.check, color: Colors.white, size: 20),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,13 +156,13 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         elevation: 1,
         iconTheme: const IconThemeData(color: Color(0xFF229ED9)),
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -79,138 +181,82 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   color: Color(0xFF229ED9),
                 ),
               ),
-              const SizedBox(height: 28),
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Nombre del grupo',
-                  prefixIcon: const Icon(Icons.group_outlined),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: 'Nombre del grupo',
+                prefixIcon: const Icon(Icons.group_outlined),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
                 ),
-                style: const TextStyle(fontSize: 18),
+                contentPadding: const EdgeInsets.symmetric(vertical: 18),
               ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  labelText: 'Buscar contacto',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 18),
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Buscar contacto',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
                 ),
-                style: const TextStyle(fontSize: 18),
+                contentPadding: const EdgeInsets.symmetric(vertical: 18),
               ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Selecciona participantes',
-                  style: TextStyle(
-                    color: Colors.blueGrey[700],
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Selecciona participantes',
+              style: TextStyle(
+                color: Colors.blueGrey[700],
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
-              const SizedBox(height: 8),
-              // Lista de contactos filtrados
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: filteredContacts.length,
-                itemBuilder: (context, index) {
-                  final contact = filteredContacts[index];
-                  final selected = selectedContacts.contains(contact);
-                  return Card(
-                    elevation: 2,
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: const Color(0xFF229ED9),
-                        child: Text(
-                          contact.isNotEmpty ? contact[0].toUpperCase() : '',
-                          style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: filteredContacts.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No hay contactos',
+                        style: TextStyle(
+                          color: Color(0xFF7B8D93),
+                          fontSize: 16,
                         ),
                       ),
-                      title: Text(
-                        contact,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF222B45),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      trailing: Checkbox(
-                        value: selected,
-                        activeColor: const Color(0xFF229ED9),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            if (value == true) {
-                              selectedContacts.add(contact);
-                            } else {
-                              selectedContacts.remove(contact);
-                            }
-                          });
-                        },
-                      ),
-                      onTap: () {
-                        setState(() {
-                          if (selected) {
-                            selectedContacts.remove(contact);
-                          } else {
-                            selectedContacts.add(contact);
-                          }
-                        });
+                    )
+                  : ListView.builder(
+                      itemCount: filteredContacts.length,
+                      itemBuilder: (context, index) {
+                        final contact = filteredContacts[index];
+                        return _buildContactTile(contact);
                       },
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF229ED9),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 2,
-                  ),
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    if (name.isNotEmpty && selectedContacts.isNotEmpty) {
-                      widget.onCreate(name, selectedContacts);
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: const Text(
-                    'Crear grupo',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF229ED9),
+        elevation: 4,
+        onPressed: _createGroup,
+        icon: const Icon(Icons.check, color: Colors.white),
+        label: const Text(
+          'Crear grupo',
+          style: TextStyle(fontSize: 17, color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
         ),
       ),
     );

@@ -28,6 +28,7 @@ class DatabaseHelper {
       path,
       version: DB_VERSION,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade, // <-- agrega esto
     );
   }
 
@@ -36,6 +37,12 @@ class DatabaseHelper {
     await db.execute(Tables.chats);
     await db.execute(Tables.messages);
     await db.execute(Tables.chatParticipants);
+  }
+
+  void _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE messages ADD COLUMN status TEXT");
+    }
   }
 
   // CRUD Usuarios
@@ -79,6 +86,16 @@ class DatabaseHelper {
     return maps.map((map) => Message.fromMap(map)).toList();
   }
 
+  // Eliminar mensaje por id
+  Future<void> deleteMessage(int id) async {
+    final db = await this.db;
+    await db.delete(
+      'messages',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // CRUD Participantes
   Future<void> addParticipantToChat(String chatId, String userId) async {
     final db = await this.db;
@@ -104,5 +121,14 @@ class DatabaseHelper {
       whereArgs: userIds,
     );
     return userMaps.map((map) => AppUser.fromMap(map)).toList();
+  }
+
+  // Eliminar chat por id
+  Future<void> deleteChat(String chatId) async {
+    final db = await this.db;
+    await db.delete('chats', where: 'id = ?', whereArgs: [chatId]);
+    // Opcional: elimina también los mensajes y participantes relacionados
+    await db.delete('messages', where: 'chat_id = ?', whereArgs: [chatId]);
+    await db.delete('chat_participants', where: 'chat_id = ?', whereArgs: [chatId]);
   }
 }

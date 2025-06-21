@@ -5,7 +5,6 @@ import 'chat_screen.dart';
 import 'create_group_screen.dart';
 import 'search_contacts_screen.dart';
 
-// Estas pantallas debes crearlas según tu lógica
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -15,6 +14,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late List<Chat> chats = [];
+  String userName = "Tú";
+  String? userPhotoUrl; // Puedes asignar una URL si tienes foto
 
   @override
   void initState() {
@@ -48,7 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void startConversation(String contact) async {
-    // Aquí puedes buscar si ya existe un chat con ese contacto, si no, lo creas
     createChat(contact);
   }
 
@@ -104,6 +104,153 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showChatOptions(Chat chat) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.push_pin, color: Color(0xFF229ED9)),
+                title: const Text('Fijar'),
+                onTap: () {
+                  // Aquí puedes agregar la lógica para fijar la conversación
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Conversación fijada (demo)')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.block, color: Colors.redAccent),
+                title: const Text('Bloquear'),
+                onTap: () {
+                  // Aquí puedes agregar la lógica para bloquear la conversación
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Conversación bloqueada (demo)')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Eliminar'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _deleteChat(chat);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteChat(Chat chat) async {
+    final dbHelper = DatabaseHelper();
+    // Elimina el chat de la base de datos
+    await dbHelper.deleteChat(chat.id);
+    // Opcional: elimina también los mensajes y participantes relacionados
+    // await dbHelper.deleteMessagesByChat(chat.id);
+    // await dbHelper.deleteParticipantsByChat(chat.id);
+    loadChats();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Conversación eliminada')),
+    );
+  }
+
+  Widget _buildChatTile(Chat chat) {
+    // Simulación de último mensaje y hora
+    String lastMessage = "Último mensaje...";
+    String time = "12:34";
+    int unreadCount = 0; // Puedes cambiarlo según tu lógica
+
+    return GestureDetector(
+      onLongPress: () => _showChatOptions(chat),
+      child: Card(
+        elevation: 0,
+        margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          leading: CircleAvatar(
+            radius: 26,
+            backgroundColor: const Color(0xFF229ED9),
+            child: Text(
+              chat.name.isNotEmpty ? chat.name[0].toUpperCase() : '',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+            ),
+          ),
+          title: Text(
+            chat.name,
+            style: const TextStyle(
+              fontSize: 18,
+              color: Color(0xFF222B45),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            lastMessage,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF7B8D93),
+              fontSize: 15,
+            ),
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                time,
+                style: TextStyle(
+                  color: unreadCount > 0 ? const Color(0xFF229ED9) : Colors.grey,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (unreadCount > 0)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF229ED9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    unreadCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -111,15 +258,48 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: userPhotoUrl != null
+              ? CircleAvatar(
+                  backgroundImage: NetworkImage(userPhotoUrl!),
+                  radius: 20,
+                )
+              : CircleAvatar(
+                  backgroundColor: const Color(0xFF229ED9),
+                  radius: 20,
+                  child: Text(
+                    userName.isNotEmpty ? userName[0].toUpperCase() : '',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+        ),
         title: const Text(
-          'Chats',
+          'Free Mess',
           style: TextStyle(
             color: Color(0xFF222B45),
             fontWeight: FontWeight.bold,
             fontSize: 24,
           ),
         ),
-        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Color(0xFF229ED9)),
+            onPressed: () {
+              // Aquí puedes abrir una búsqueda de chats
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Color(0xFF229ED9)),
+            onPressed: () {
+              // Menú de opciones
+            },
+          ),
+        ],
         iconTheme: const IconThemeData(color: Color(0xFF229ED9)),
       ),
       body: chats.isEmpty
@@ -133,48 +313,21 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
               itemCount: chats.length,
               itemBuilder: (context, index) {
                 final chat = chats[index];
-                return Card(
-                  elevation: 2,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF229ED9),
-                      child: Text(
-                        chat.name.isNotEmpty ? chat.name[0].toUpperCase() : '',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    title: Text(
-                      chat.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Color(0xFF222B45),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFF229ED9), size: 18),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
-                      ),
-                    ),
-                  ),
-                );
+                return _buildChatTile(chat);
               },
             ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF229ED9),
-        elevation: 3,
+        elevation: 4,
         onPressed: showAddOptions,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.edit, color: Colors.white, size: 28),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
       ),
     );
   }

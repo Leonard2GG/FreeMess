@@ -52,7 +52,7 @@ class _ChatScreenState extends State<ChatScreen> {
         senderId: currentUser.id,
         text: text,
         timestamp: DateTime.now().millisecondsSinceEpoch,
-        status: "sent", // Nuevo campo para el estado
+        status: "sent",
       );
       final dbHelper = DatabaseHelper();
       await dbHelper.addMessage(message);
@@ -61,8 +61,61 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // Devuelve el icono y color según el estado del mensaje
-  Widget _getStatusIcon(String status) {
+  void _deleteMessage(Message msg) async {
+    final dbHelper = DatabaseHelper();
+    await dbHelper.deleteMessage(msg.id!);
+    loadMessages();
+  }
+
+  void _showMessageOptions(Message msg) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.push_pin, color: Color(0xFF229ED9)),
+                title: const Text('Fijar'),
+                onTap: () {
+                  // Lógica para fijar mensaje
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Mensaje fijado (demo)')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.block, color: Colors.redAccent),
+                title: const Text('Bloquear'),
+                onTap: () {
+                  // Lógica para bloquear mensaje
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Mensaje bloqueado (demo)')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Eliminar'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteMessage(msg);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _getStatusIcon(String? status) {
     switch (status) {
       case "sent":
         return const Icon(Icons.check, size: 16, color: Colors.grey);
@@ -76,74 +129,102 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessage(Message msg, bool isMe) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          if (!isMe)
-            CircleAvatar(
-              backgroundColor: const Color(0xFF229ED9),
-              radius: 16,
-              child: Text(
-                msg.senderId.isNotEmpty ? msg.senderId[0].toUpperCase() : 'U',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-            ),
-          if (!isMe) const SizedBox(width: 8),
-          Flexible(
-            child: Stack(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  margin: isMe
-                      ? const EdgeInsets.only(right: 28)
-                      : const EdgeInsets.only(left: 0),
-                  decoration: BoxDecoration(
-                    color: isMe ? const Color(0xFF229ED9) : Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(16),
-                      topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(isMe ? 16 : 4),
-                      bottomRight: Radius.circular(isMe ? 4 : 16),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12.withOpacity(0.06),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      )
-                    ],
-                  ),
-                  child: Text(
-                    msg.text,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: isMe ? Colors.white : const Color(0xFF222B45),
-                    ),
+    return GestureDetector(
+      onLongPress: () => _showMessageOptions(msg),
+      child: Container(
+        margin: EdgeInsets.only(
+          top: 6,
+          bottom: 6,
+          left: isMe ? 60 : 12,
+          right: isMe ? 12 : 60,
+        ),
+        child: Row(
+          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (!isMe)
+              CircleAvatar(
+                backgroundColor: const Color(0xFF229ED9),
+                radius: 18,
+                child: Text(
+                  msg.senderId.isNotEmpty ? msg.senderId[0].toUpperCase() : 'U',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                   ),
                 ),
-                // Estado solo para mensajes propios
-                if (isMe)
-                  Positioned(
-                    bottom: 6,
-                    right: 6,
-                    child: _getStatusIcon(msg.status ?? "sent"),
+              ),
+            if (!isMe) const SizedBox(width: 8),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isMe ? const Color(0xFF229ED9) : Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(16),
+                    topRight: const Radius.circular(16),
+                    bottomLeft: Radius.circular(isMe ? 16 : 4),
+                    bottomRight: Radius.circular(isMe ? 4 : 16),
                   ),
-              ],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12.withOpacity(0.06),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      msg.text,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: isMe ? Colors.white : const Color(0xFF222B45),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _formatTime(msg.timestamp),
+                          style: TextStyle(
+                            color: isMe ? Colors.white70 : Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                        if (isMe)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: _getStatusIcon(msg.status ?? "sent"),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-          if (isMe) const SizedBox(width: 8),
-          if (isMe)
-            CircleAvatar(
-              backgroundColor: Colors.grey.shade200,
-              radius: 16,
-              child: const Icon(Icons.person_outline, color: Color(0xFF229ED9), size: 18),
-            ),
-        ],
+            if (isMe) const SizedBox(width: 8),
+            if (isMe)
+              CircleAvatar(
+                backgroundColor: Colors.grey.shade200,
+                radius: 18,
+                child: const Icon(Icons.person_outline, color: Color(0xFF229ED9), size: 18),
+              ),
+          ],
+        ),
       ),
     );
+  }
+
+  String _formatTime(int timestamp) {
+    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final min = dt.minute.toString().padLeft(2, '0');
+    return "$hour:$min";
   }
 
   @override
@@ -155,16 +236,15 @@ class _ChatScreenState extends State<ChatScreen> {
         elevation: 1,
         title: GestureDetector(
           onTap: () async {
-            // Simulación: obtén la cantidad de integrantes y foto si tienes esa info
-            int membersCount = 1; // Por defecto 1 para chat individual
+            int membersCount = 1;
             String? photoUrl;
             bool isGroup = widget.chatId.startsWith('group_');
+            List<String> memberNames = [];
             if (isGroup) {
-              // Si tienes método para obtener miembros, úsalo aquí
               final dbHelper = DatabaseHelper();
               final members = await dbHelper.getParticipantsByChat(widget.chatId);
               membersCount = members.length;
-              // Si tienes foto, asígnala a photoUrl
+              memberNames = members.map((u) => u.name).toList();
             }
             Navigator.push(
               context,
@@ -174,6 +254,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   photoUrl: photoUrl,
                   membersCount: membersCount,
                   isGroup: isGroup,
+                  memberNames: memberNames,
                 ),
               ),
             );
@@ -201,16 +282,26 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              reverse: false,
-              padding: const EdgeInsets.only(top: 12, bottom: 8),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final msg = messages[index];
-                bool isMe = msg.senderId == currentUser.id;
-                return _buildMessage(msg, isMe);
-              },
-            ),
+            child: messages.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No hay mensajes aún',
+                      style: TextStyle(
+                        color: Color(0xFF7B8D93),
+                        fontSize: 18,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    reverse: false,
+                    padding: const EdgeInsets.only(top: 12, bottom: 8),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = messages[index];
+                      bool isMe = msg.senderId == currentUser.id;
+                      return _buildMessage(msg, isMe);
+                    },
+                  ),
           ),
           SafeArea(
             child: Padding(
