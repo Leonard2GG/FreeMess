@@ -16,6 +16,9 @@ class _HomeScreenState extends State<HomeScreen> {
   late List<Chat> chats = [];
   String userName = "Tú";
   String? userPhotoUrl; // Puedes asignar una URL si tienes foto
+  bool _isSearching = false;
+  String _searchText = '';
+  TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -26,6 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void loadChats() async {
     final dbHelper = DatabaseHelper();
     chats = await dbHelper.getAllChats();
+    // Ordena los chats para que el más reciente esté primero
+    chats.sort((a, b) => b.id.compareTo(a.id));// Si usas timestamp en el id
+    //chats.sort((a, b) => b.timestamp.compareTo(a.timestamp)); 
     setState(() {});
   }
 
@@ -328,6 +334,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredChats = _searchText.isEmpty
+        ? chats
+        : chats.where((chat) => chat.name.toLowerCase().contains(_searchText.toLowerCase())).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FB),
       appBar: AppBar(
@@ -353,21 +363,54 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
         ),
-        title: const Text(
-          'Free Mess',
-          style: TextStyle(
-            color: Color(0xFF222B45),
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
-        ),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Buscar conversación...',
+                  border: InputBorder.none,
+                ),
+                style: const TextStyle(
+                  color: Color(0xFF222B45),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchText = value;
+                  });
+                },
+              )
+            : const Text(
+                'Free Mess',
+                style: TextStyle(
+                  color: Color(0xFF222B45),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                ),
+              ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Color(0xFF229ED9)),
-            onPressed: () {
-              // Aquí puedes abrir una búsqueda de chats
-            },
-          ),
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.close, color: Color(0xFF229ED9)),
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchText = '';
+                  _searchController.clear();
+                });
+              },
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.search, color: Color(0xFF229ED9)),
+              onPressed: () {
+                setState(() {
+                  _isSearching = true;
+                });
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.more_vert, color: Color(0xFF229ED9)),
             onPressed: () {
@@ -377,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
         iconTheme: const IconThemeData(color: Color(0xFF229ED9)),
       ),
-      body: chats.isEmpty
+      body: filteredChats.isEmpty
           ? const Center(
               child: Text(
                 'No hay chats aún',
@@ -389,9 +432,9 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           : ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-              itemCount: chats.length,
+              itemCount: filteredChats.length,
               itemBuilder: (context, index) {
-                final chat = chats[index];
+                final chat = filteredChats[index];
                 return _buildChatTile(chat);
               },
             ),
