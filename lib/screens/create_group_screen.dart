@@ -104,17 +104,35 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         color: selected ? const Color(0xFFE3F4FB) : Colors.white,
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          leading: CircleAvatar(
-            radius: 26,
-            backgroundColor: const Color(0xFF229ED9),
-            child: Text(
-              contact.isNotEmpty ? contact[0].toUpperCase() : '',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
+          leading: Stack(
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: const Color(0xFF229ED9),
+                child: Text(
+                  contact.isNotEmpty ? contact[0].toUpperCase() : '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                ),
               ),
-            ),
+              if (selected)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF229ED9),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    padding: const EdgeInsets.all(2),
+                    child: const Icon(Icons.check, color: Colors.white, size: 18),
+                  ),
+                ),
+            ],
           ),
           title: Text(
             contact,
@@ -124,16 +142,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          trailing: selected
-              ? Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF229ED9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(6),
-                  child: const Icon(Icons.check, color: Colors.white, size: 20),
-                )
-              : null,
         ),
       ),
     );

@@ -49,7 +49,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void startConversation(String contact) async {
-    createChat(contact);
+    final dbHelper = DatabaseHelper();
+    // Buscar si ya existe un chat individual con ese contacto
+    final existingChats = chats.where((chat) =>
+        !chat.id.startsWith('group_') &&
+        (chat.name == contact || chat.name == userName));
+    if (existingChats.isNotEmpty) {
+      // Ya existe, navega a ese chat
+      final chat = existingChats.first;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
+        ),
+      );
+    } else {
+      // No existe, crea uno nuevo y navega
+      final chat = Chat(id: 'chat_${DateTime.now().millisecondsSinceEpoch}', name: contact);
+      await dbHelper.insertChat(chat);
+      await dbHelper.addParticipantToChat(chat.id, 'current_user');
+      await dbHelper.addParticipantToChat(chat.id, contact);
+      loadChats();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
+        ),
+      );
+    }
   }
 
   void showAddOptions() {
@@ -104,6 +131,38 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showCustomSnackBar(String message, {IconData icon = Icons.info_outline}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: const Color(0xFF229ED9)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Color(0xFF222B45),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        behavior: SnackBarBehavior.floating,
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF229ED9), width: 1.2),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _showChatOptions(Chat chat) {
     showModalBottomSheet(
       context: context,
@@ -119,22 +178,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 leading: const Icon(Icons.push_pin, color: Color(0xFF229ED9)),
                 title: const Text('Fijar'),
                 onTap: () {
-                  // Aquí puedes agregar la lógica para fijar la conversación
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Conversación fijada (demo)')),
-                  );
+                  _showCustomSnackBar('Conversación fijada', icon: Icons.push_pin);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.block, color: Colors.redAccent),
                 title: const Text('Bloquear'),
                 onTap: () {
-                  // Aquí puedes agregar la lógica para bloquear la conversación
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Conversación bloqueada (demo)')),
-                  );
+                  _showCustomSnackBar('Conversación bloqueada', icon: Icons.block);
                 },
               ),
               ListTile(
@@ -154,15 +207,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _deleteChat(Chat chat) async {
     final dbHelper = DatabaseHelper();
-    // Elimina el chat de la base de datos
     await dbHelper.deleteChat(chat.id);
-    // Opcional: elimina también los mensajes y participantes relacionados
-    // await dbHelper.deleteMessagesByChat(chat.id);
-    // await dbHelper.deleteParticipantsByChat(chat.id);
     loadChats();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Conversación eliminada')),
-    );
+    _showCustomSnackBar('Conversación eliminada', icon: Icons.delete);
   }
 
   Widget _buildChatTile(Chat chat) {
