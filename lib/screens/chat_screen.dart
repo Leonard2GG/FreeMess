@@ -33,7 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
   print("Usuario cargado: $user");
   if (user != null) {
     setState(() {
-      currentUser = user;
+      currentUser = AppUser.fromMap(user);
     });
   } else {
     print("ERROR: Current user not found");
@@ -281,7 +281,18 @@ class _ChatScreenState extends State<ChatScreen> {
           },
           child: Row(
             children: [
-              const Icon(Icons.chat_bubble_outline, color: Color(0xFF229ED9)),
+              CircleAvatar(
+                backgroundColor: const Color(0xFF229ED9),
+                radius: 18,
+                child: Text(
+                  widget.chatName.isNotEmpty ? widget.chatName[0].toUpperCase() : '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
               const SizedBox(width: 8),
               Text(
                 widget.chatName,

@@ -4,6 +4,7 @@ import 'package:free_mess/database/database_helper.dart';
 import 'chat_screen.dart';
 import 'create_group_screen.dart';
 import 'search_contacts_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -16,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late List<Chat> chats = [];
   String userName = "Tú";
   String? userPhotoUrl; // Puedes asignar una URL si tienes foto
+  String userPhone = 'TuTeléfono'; // Variable para el teléfono del usuario
   bool _isSearching = false;
   String _searchText = '';
   TextEditingController _searchController = TextEditingController();
@@ -379,23 +381,43 @@ if (chat.lastMessageTime != null && chat.lastMessageTime != 0) {
         elevation: 1,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: userPhotoUrl != null
-              ? CircleAvatar(
-                  backgroundImage: NetworkImage(userPhotoUrl!),
-                  radius: 20,
-                )
-              : CircleAvatar(
-                  backgroundColor: const Color(0xFF229ED9),
-                  radius: 20,
-                  child: Text(
-                    userName.isNotEmpty ? userName[0].toUpperCase() : '',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
+          child: GestureDetector(
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfileScreen(
+                    initialName: userName,
+                    initialPhone: 'TuTeléfono', // Aquí pon el número real si lo tienes
+                    photoUrl: userPhotoUrl,
                   ),
                 ),
+              );
+              if (result != null && result is Map) {
+                setState(() {
+                  userName = result['name'] ?? userName;
+                  userPhone = result['phone'] ?? userPhone; // <-- agrega esto
+                });
+              }
+            },
+            child: userPhotoUrl != null
+                ? CircleAvatar(
+                    backgroundImage: NetworkImage(userPhotoUrl!),
+                    radius: 20,
+                  )
+                : CircleAvatar(
+                    backgroundColor: const Color(0xFF229ED9),
+                    radius: 20,
+                    child: Text(
+                      userName.isNotEmpty ? userName[0].toUpperCase() : '',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+          ),
         ),
         title: _isSearching
             ? TextField(

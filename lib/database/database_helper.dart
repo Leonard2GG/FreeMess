@@ -43,9 +43,15 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       await db.execute("ALTER TABLE messages ADD COLUMN status TEXT");
     }
-    // Agrega esto para la columna timestamp en chats
     if (oldVersion < 3) {
       await db.execute("ALTER TABLE chats ADD COLUMN timestamp INTEGER");
+    }
+    if (oldVersion < 4) {
+      await db.execute("ALTER TABLE users ADD COLUMN phone TEXT");
+    }
+    // Agrega esto para la columna lastMessage en chats
+    if (oldVersion < 5) {
+      await db.execute("ALTER TABLE chats ADD COLUMN lastMessage TEXT");
     }
   }
 
@@ -55,10 +61,10 @@ class DatabaseHelper {
     await db.insert('users', user.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<AppUser?> getUser(String id) async {
+  Future<Map<String, dynamic>?> getUser(String id) async {
     final db = await this.db;
     final List<Map<String, dynamic>> maps = await db.query('users', where: 'id = ?', whereArgs: [id]);
-    return maps.isNotEmpty ? AppUser.fromMap(maps.first) : null;
+    return maps.isNotEmpty ? maps.first : null;
   }
 
   // CRUD Chats
@@ -172,5 +178,37 @@ class DatabaseHelper {
       return Message.fromMap(result.first);
     }
     return null;
+  }
+
+  Future<void> insertUserByFields({required String id, required String name, required String phone}) async {
+    final db = await this.db;
+    await db.insert(
+      'users',
+      {
+        'id': id,
+        'name': name,
+        'phone': phone,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<Map<String, dynamic>?> getChatWithUser(String userName) async {
+    final db = await this.db;
+    final result = await db.query('chats', where: 'name = ?', whereArgs: [userName]);
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  Future<String> createChatWithUser(String userName, String phone) async {
+    final db = await this.db;
+    final id = DateTime.now().millisecondsSinceEpoch.toString() + "_" + (DateTime.now().microsecondsSinceEpoch % 100000).toString(); // Genera un id único simple
+    await db.insert('chats', {
+      'id': id,
+      'name': userName,
+      'lastMessage': '',
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+    // También puedes agregar el usuario a la tabla de participantes si tienes una
+    return id;
   }
 }

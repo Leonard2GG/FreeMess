@@ -2,7 +2,8 @@ class Tables {
   static const String users = '''
     CREATE TABLE users (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL
+      name TEXT,
+      phone TEXT
     )
   ''';
 
@@ -19,7 +20,9 @@ class Tables {
   static const String chats = '''
     CREATE TABLE chats (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL
+      name TEXT,
+      lastMessage TEXT,
+      timestamp INTEGER
     )
   ''';
 

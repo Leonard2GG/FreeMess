@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:free_mess/database/database_helper.dart';
+import 'package:free_mess/screens/chat_screen.dart';
 
 class ChatInfoScreen extends StatelessWidget {
   final String chatName;
@@ -6,6 +8,7 @@ class ChatInfoScreen extends StatelessWidget {
   final int membersCount;
   final bool isGroup;
   final List<String> memberNames;
+  final List<String>? memberPhones; // <-- Agrega esto para los teléfonos
 
   const ChatInfoScreen({
     super.key,
@@ -14,6 +17,7 @@ class ChatInfoScreen extends StatelessWidget {
     required this.membersCount,
     required this.isGroup,
     this.memberNames = const [],
+    this.memberPhones, // <-- Agrega esto
   });
 
   @override
@@ -39,23 +43,18 @@ class ChatInfoScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              photoUrl != null && photoUrl!.isNotEmpty
-                  ? CircleAvatar(
-                      radius: 48,
-                      backgroundImage: NetworkImage(photoUrl!),
-                    )
-                  : CircleAvatar(
-                      radius: 48,
-                      backgroundColor: const Color(0xFF229ED9),
-                      child: Text(
-                        chatName.isNotEmpty ? chatName[0].toUpperCase() : '',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+              CircleAvatar(
+                radius: 48,
+                backgroundColor: const Color(0xFF229ED9),
+                child: Text(
+                  chatName.isNotEmpty ? chatName[0].toUpperCase() : '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
               Text(
                 chatName,
@@ -65,15 +64,29 @@ class ChatInfoScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              if (!isGroup && memberPhones != null && memberPhones!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                  child: Text(
+                    memberPhones![0], // El teléfono del contacto
+                    style: const TextStyle(
+                      fontSize: 24,
+                      color: Color(0xFF229ED9),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
               if (isGroup)
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Integrantes: $membersCount',
+                      'Integrantes ($membersCount)',
                       style: const TextStyle(
                         fontSize: 18,
                         color: Color(0xFF7B8D93),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -83,28 +96,159 @@ class ChatInfoScreen extends StatelessWidget {
                       itemCount: memberNames.length,
                       itemBuilder: (context, index) {
                         final name = memberNames[index];
+                        final phone = '50306119'; // prueba con un valor fijo
                         return Card(
-                          elevation: 1,
-                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          elevation: 0,
+                          margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
+                          color: Colors.white,
                           child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             leading: CircleAvatar(
+                              radius: 26,
                               backgroundColor: const Color(0xFF229ED9),
                               child: Text(
                                 name.isNotEmpty ? name[0].toUpperCase() : '',
                                 style: const TextStyle(
-                                    color: Colors.white, fontWeight: FontWeight.bold),
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 22,
+                                ),
                               ),
                             ),
-                            title: Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 17,
-                                color: Color(0xFF222B45),
-                              ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      color: Color(0xFF222B45),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                if (phone.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8.0),
+                                    child: Text(
+                                      phone.startsWith('+53') ? phone : '+53 $phone',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Color(0xFF229ED9),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  backgroundColor: Colors.white,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 48,
+                                          backgroundColor: const Color(0xFF229ED9),
+                                          child: Text(
+                                            name.isNotEmpty ? name[0].toUpperCase() : '',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 36,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 20),
+                                        Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            color: Color(0xFF222B45),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          phone.startsWith('+53') ? phone : '+53 $phone',
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            color: Color(0xFF229ED9),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 24),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF229ED9),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(16),
+                                                  ),
+                                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                                  elevation: 0,
+                                                ),
+                                                onPressed: () async {
+                                                  Navigator.pop(context); // Cierra el diálogo
+
+                                                  // Aquí debes tener acceso a tu DatabaseHelper o método para buscar chats
+                                                  final dbHelper = DatabaseHelper();
+
+                                                  // Busca si ya existe un chat con este contacto (por nombre o por id real si lo tienes)
+                                                  // Aquí se asume que el nombre es único, pero lo ideal es usar un id de usuario
+                                                  final existingChat = await dbHelper.getChatWithUser(name);
+
+                                                  String chatId;
+                                                  if (existingChat != null) {
+                                                    chatId = existingChat['id'];
+                                                  } else {
+                                                    // Si no existe, crea el chat y obtén el id
+                                                    chatId = await dbHelper.createChatWithUser(name, phone);
+                                                  }
+
+                                                  // Navega al ChatScreen
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => ChatScreen(
+                                                        chatId: chatId,
+                                                        chatName: name,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                child: const Text(
+                                                  'Mensaje',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 17,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         );
                       },
