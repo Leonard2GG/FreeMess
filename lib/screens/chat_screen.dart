@@ -3,6 +3,7 @@ import 'package:free_mess/models/message.dart';
 import 'package:free_mess/database/database_helper.dart';
 import 'package:free_mess/models/user.dart';
 import 'chat_info_screen.dart';
+import 'package:free_mess/screens/home_screen.dart'; // importa HomeScreen
 
 
 class ChatScreen extends StatefulWidget {
@@ -249,133 +250,143 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F8FB),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        title: GestureDetector(
-          onTap: () async {
-            int membersCount = 1;
-            String? photoUrl;
-            bool isGroup = widget.chatId.startsWith('group_');
-            List<String> memberNames = [];
-            if (isGroup) {
-              final dbHelper = DatabaseHelper();
-              final members = await dbHelper.getParticipantsByChat(widget.chatId);
-              membersCount = members.length;
-              memberNames = members.map((u) => u.name).toList();
-            }
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChatInfoScreen(
-                  chatName: widget.chatName,
-                  photoUrl: photoUrl,
-                  membersCount: membersCount,
-                  isGroup: isGroup,
-                  memberNames: memberNames,
+    return WillPopScope(
+      onWillPop: () async {
+        // Navega al HomeScreen y elimina todas las rutas anteriores
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => HomeScreen()),
+          (route) => false,
+        );
+        return false; // Previene el pop normal
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F8FB),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 1,
+          title: GestureDetector(
+            onTap: () async {
+              int membersCount = 1;
+              String? photoUrl;
+              bool isGroup = widget.chatId.startsWith('group_');
+              List<String> memberNames = [];
+              if (isGroup) {
+                final dbHelper = DatabaseHelper();
+                final members = await dbHelper.getParticipantsByChat(widget.chatId);
+                membersCount = members.length;
+                memberNames = members.map((u) => u.name).toList();
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatInfoScreen(
+                    chatName: widget.chatName,
+                    photoUrl: photoUrl,
+                    membersCount: membersCount,
+                    isGroup: isGroup,
+                    memberNames: memberNames,
+                  ),
                 ),
-              ),
-            );
-          },
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: const Color(0xFF229ED9),
-                radius: 18,
-                child: Text(
-                  widget.chatName.isNotEmpty ? widget.chatName[0].toUpperCase() : '',
+              );
+            },
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: const Color(0xFF229ED9),
+                  radius: 18,
+                  child: Text(
+                    widget.chatName.isNotEmpty ? widget.chatName[0].toUpperCase() : '',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  widget.chatName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Color(0xFF222B45),
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 20,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                widget.chatName,
-                style: const TextStyle(
-                  color: Color(0xFF222B45),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
+          actions: const [
+            Icon(Icons.search, color: Color(0xFF229ED9)),
+            SizedBox(width: 16),
+          ],
         ),
-        actions: const [
-          Icon(Icons.search, color: Color(0xFF229ED9)),
-          SizedBox(width: 16),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: messages.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No hay mensajes aún',
-                      style: TextStyle(
-                        color: Color(0xFF7B8D93),
-                        fontSize: 18,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    reverse: false,
-                    padding: const EdgeInsets.only(top: 12, bottom: 8),
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = messages[index];
-                      bool isMe = msg.senderId == currentUser!.id;
-                      return _buildMessage(msg, isMe);
-                    },
-                  ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.add, color: Color(0xFF229ED9)),
-                      onPressed: () {},
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        decoration: const InputDecoration(
-                          hintText: 'Escribe un mensaje...',
-                          border: InputBorder.none,
+        body: Column(
+          children: [
+            Expanded(
+              child: messages.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No hay mensajes aún',
+                        style: TextStyle(
+                          color: Color(0xFF7B8D93),
+                          fontSize: 18,
                         ),
-                        style: const TextStyle(fontSize: 16),
                       ),
+                    )
+                  : ListView.builder(
+                      reverse: false,
+                      padding: const EdgeInsets.only(top: 12, bottom: 8),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = messages[index];
+                        bool isMe = msg.senderId == currentUser!.id;
+                        return _buildMessage(msg, isMe);
+                      },
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.send, color: Color(0xFF229ED9)),
-                      onPressed: currentUser == null ? null : _sendMessage,
-                    ),
-                  ],
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.add, color: Color(0xFF229ED9)),
+                        onPressed: () {},
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          decoration: const InputDecoration(
+                            hintText: 'Escribe un mensaje...',
+                            border: InputBorder.none,
+                          ),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.send, color: Color(0xFF229ED9)),
+                        onPressed: currentUser == null ? null : _sendMessage,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

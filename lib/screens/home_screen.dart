@@ -23,10 +23,25 @@ class _HomeScreenState extends State<HomeScreen> {
   TextEditingController _searchController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    loadChats();
-  }
+void initState() {
+  super.initState();
+  loadCurrentUser(); // <-- Agrega esto
+  loadChats();       // (o tu método para cargar chats)
+}
+
+
+  void loadCurrentUser() async {
+  final dbHelper = DatabaseHelper();
+  final user = await dbHelper.getUser('current_user');
+  setState(() {
+    userName = user != null && user['name'] != null && user['name'].toString().isNotEmpty
+        ? user['name']
+        : "Tú";
+    userPhone = user != null && user['phone'] != null && user['phone'].toString().isNotEmpty
+        ? user['phone']
+        : "TuTeléfono";
+  });
+}
 
   void loadChats() async {
     final dbHelper = DatabaseHelper();

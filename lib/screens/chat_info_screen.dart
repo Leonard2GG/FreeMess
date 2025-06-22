@@ -8,7 +8,7 @@ class ChatInfoScreen extends StatelessWidget {
   final int membersCount;
   final bool isGroup;
   final List<String> memberNames;
-  final List<String>? memberPhones; // <-- Agrega esto para los teléfonos
+  final List<String>? memberPhones;
 
   const ChatInfoScreen({
     super.key,
@@ -17,7 +17,7 @@ class ChatInfoScreen extends StatelessWidget {
     required this.membersCount,
     required this.isGroup,
     this.memberNames = const [],
-    this.memberPhones, // <-- Agrega esto
+    this.memberPhones,
   });
 
   @override
@@ -64,19 +64,22 @@ class ChatInfoScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              // SOLO para contacto individual: muestra el número debajo del nombre
               if (!isGroup && memberPhones != null && memberPhones!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
                   child: Text(
-                    memberPhones![0], // El teléfono del contacto
+                    memberPhones![0],
                     style: const TextStyle(
                       fontSize: 24,
                       color: Color(0xFF229ED9),
                       fontWeight: FontWeight.bold,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               const SizedBox(height: 16),
+              // SOLO para grupo: muestra la lista de integrantes con número al lado
               if (isGroup)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,7 +99,7 @@ class ChatInfoScreen extends StatelessWidget {
                       itemCount: memberNames.length,
                       itemBuilder: (context, index) {
                         final name = memberNames[index];
-                        final phone = '50306119'; // prueba con un valor fijo
+                        final phone = '50306119';
                         return Card(
                           elevation: 0,
                           margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
@@ -205,22 +208,16 @@ class ChatInfoScreen extends StatelessWidget {
                                                 onPressed: () async {
                                                   Navigator.pop(context); // Cierra el diálogo
 
-                                                  // Aquí debes tener acceso a tu DatabaseHelper o método para buscar chats
                                                   final dbHelper = DatabaseHelper();
-
-                                                  // Busca si ya existe un chat con este contacto (por nombre o por id real si lo tienes)
-                                                  // Aquí se asume que el nombre es único, pero lo ideal es usar un id de usuario
                                                   final existingChat = await dbHelper.getChatWithUser(name);
 
                                                   String chatId;
                                                   if (existingChat != null) {
                                                     chatId = existingChat['id'];
                                                   } else {
-                                                    // Si no existe, crea el chat y obtén el id
                                                     chatId = await dbHelper.createChatWithUser(name, phone);
                                                   }
 
-                                                  // Navega al ChatScreen
                                                   Navigator.push(
                                                     context,
                                                     MaterialPageRoute(
