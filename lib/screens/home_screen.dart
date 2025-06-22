@@ -29,9 +29,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void loadChats() async {
     final dbHelper = DatabaseHelper();
     chats = await dbHelper.getAllChats();
-    // Ordena los chats para que el más reciente esté primero
-    //chats.sort((a, b) => b.id.compareTo(a.id));// Si usas timestamp en el id
-    chats.sort((a, b) => b.timestamp.compareTo(a.timestamp)); 
+
+    for (var chat in chats) {
+      final lastMsg = await dbHelper.getLastMessageForChat(chat.id);
+      print('Chat: ${chat.name}, Último mensaje: ${lastMsg?.text}');
+      chat.lastMessage = lastMsg?.text ?? '';
+      chat.lastMessageTime = lastMsg?.timestamp; // <-- Aquí
+    }
+
+    // Ordena los chats por la hora del último mensaje (o por timestamp si no hay mensajes)
+    chats.sort((a, b) =>
+      (b.lastMessageTime ?? b.timestamp).compareTo(a.lastMessageTime ?? a.timestamp));
     setState(() {});
   }
 
@@ -261,9 +269,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildChatTile(Chat chat) {
-    // Simulación de último mensaje y hora
-    String lastMessage = "Último mensaje...";
-    String time = "12:34";
+    String lastMessage = chat.lastMessage?.isNotEmpty == true
+        ? chat.lastMessage!
+        : "Sin mensajes aún";
+    // Formatea la hora del último mensaje
+    String time = "";
+if (chat.lastMessageTime != null && chat.lastMessageTime != 0) {
+  final date = DateTime.fromMillisecondsSinceEpoch(chat.lastMessageTime!);
+  time = "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+}
+
     int unreadCount = 0; // Puedes cambiarlo según tu lógica
 
     return GestureDetector(
@@ -335,12 +350,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
             ],
           ),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
-            ),
-          ),
+          onTap: () async {
+  await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
+    ),
+  );
+  loadChats(); // <-- Esto refresca la lista al volver del chat
+},
         ),
       ),
     );
@@ -458,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF229ED9),
         elevation: 4,
         onPressed: showAddOptions,
-        child: const Icon(Icons.edit, color: Colors.white, size: 28),
+        child: const Icon(Icons.add_comment_rounded, color: Colors.white, size: 28),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
         ),

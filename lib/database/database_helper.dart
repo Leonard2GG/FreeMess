@@ -145,4 +145,32 @@ class DatabaseHelper {
       whereArgs: [chatId],
     );
   }
+
+  Future<void> insertCurrentUserIfNotExists() async {
+    final db = await this.db;
+    final result = await db.query('users', where: 'id = ?', whereArgs: ['current_user']);
+    if (result.isEmpty) {
+      await db.insert('users', {
+        'id': 'current_user',
+        'name': 'Tú',
+        // agrega otros campos requeridos si los tienes
+      });
+      print("Usuario current_user creado");
+    }
+  }
+
+  Future<Message?> getLastMessageForChat(String chatId) async {
+    final db = await this.db;
+    final result = await db.query(
+      'messages',
+      where: 'chat_id = ?',
+      whereArgs: [chatId],
+      orderBy: 'timestamp DESC',
+      limit: 1,
+    );
+    if (result.isNotEmpty) {
+      return Message.fromMap(result.first);
+    }
+    return null;
+  }
 }

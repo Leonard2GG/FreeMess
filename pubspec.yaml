@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
   provider: ^6.1.1
   sqflite: ^2.2.8          # Base de datos SQLite
-  path: ^1.8.3               # Almacenamiento local simple
+  path: ^1.8.3            # Almacenamiento local simple
 
 dev_dependencies:
   flutter_test:

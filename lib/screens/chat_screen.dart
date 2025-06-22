@@ -4,6 +4,7 @@ import 'package:free_mess/database/database_helper.dart';
 import 'package:free_mess/models/user.dart';
 import 'chat_info_screen.dart';
 
+
 class ChatScreen extends StatefulWidget {
   final String chatId;
   final String chatName;
@@ -15,7 +16,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  late AppUser currentUser;
+  AppUser? currentUser;
   final TextEditingController _controller = TextEditingController();
   List<Message> messages = [];
 
@@ -27,16 +28,18 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void loadCurrentUser() async {
-    final dbHelper = DatabaseHelper();
-    final user = await dbHelper.getUser("current_user");
-    if (user != null) {
-      setState(() {
-        currentUser = user;
-      });
-    } else {
-      throw Exception("Current user not found");
-    }
+  final dbHelper = DatabaseHelper();
+  final user = await dbHelper.getUser("current_user");
+  print("Usuario cargado: $user");
+  if (user != null) {
+    setState(() {
+      currentUser = user;
+    });
+  } else {
+    print("ERROR: Current user not found");
+    // Puedes mostrar un mensaje de error aquí si quieres
   }
+}
 
   void loadMessages() async {
     final dbHelper = DatabaseHelper();
@@ -45,21 +48,36 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendMessage() async {
+    print("Intentando enviar mensaje...");
+    if (currentUser == null) {
+      print("Usuario no cargado");
+      return;
+    }
     final text = _controller.text.trim();
     if (text.isNotEmpty) {
-      final message = Message(
-        chatId: widget.chatId,
-        senderId: currentUser.id,
-        text: text,
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-        status: "sent",
-      );
-      final dbHelper = DatabaseHelper();
-      await dbHelper.addMessage(message);
-      // Actualiza el timestamp del chat
-      await dbHelper.updateChatTimestamp(widget.chatId, message.timestamp);
-      loadMessages();
-      _controller.clear();
+      try {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+        final message = Message(
+          chatId: widget.chatId,
+          senderId: currentUser!.id,
+          text: text,
+          timestamp: timestamp,
+          status: "sent",
+        );
+        final dbHelper = DatabaseHelper();
+        print("Antes de addMessage");
+        await dbHelper.addMessage(message);
+        print("Después de addMessage");
+        await dbHelper.updateChatTimestamp(widget.chatId, timestamp);
+        print("Después de updateChatTimestamp");
+        loadMessages();
+        _controller.clear();
+      } catch (e) {
+        print("Error al enviar mensaje: $e");
+      }
+    } else {
+      print("El texto está vacío");
     }
   }
 
@@ -300,7 +318,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final msg = messages[index];
-                      bool isMe = msg.senderId == currentUser.id;
+                      bool isMe = msg.senderId == currentUser!.id;
                       return _buildMessage(msg, isMe);
                     },
                   ),
@@ -339,7 +357,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.send, color: Color(0xFF229ED9)),
-                      onPressed: _sendMessage,
+                      onPressed: currentUser == null ? null : _sendMessage,
                     ),
                   ],
                 ),
