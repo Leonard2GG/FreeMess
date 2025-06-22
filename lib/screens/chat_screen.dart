@@ -20,6 +20,9 @@ class _ChatScreenState extends State<ChatScreen> {
   AppUser? currentUser;
   final TextEditingController _controller = TextEditingController();
   List<Message> messages = [];
+  bool _isSearching = false;
+  String _searchQuery = '';
+  List<Message> _filteredMessages = [];
 
   @override
   void initState() {
@@ -43,10 +46,21 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
   void loadMessages() async {
-    final dbHelper = DatabaseHelper();
-    messages = await dbHelper.getMessagesByChat(widget.chatId);
-    setState(() {});
+  final dbHelper = DatabaseHelper();
+  messages = await dbHelper.getMessagesByChat(widget.chatId);
+  _filterMessages();
+  setState(() {});
+}
+
+void _filterMessages() {
+  if (_searchQuery.isEmpty) {
+    _filteredMessages = messages;
+  } else {
+    _filteredMessages = messages
+        .where((msg) => msg.text.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
   }
+}
 
   void _sendMessage() async {
     print("Intentando enviar mensaje...");
@@ -248,6 +262,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return "$hour:$min";
   }
 
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -264,60 +279,94 @@ class _ChatScreenState extends State<ChatScreen> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 1,
-          title: GestureDetector(
-            onTap: () async {
-              int membersCount = 1;
-              String? photoUrl;
-              bool isGroup = widget.chatId.startsWith('group_');
-              List<String> memberNames = [];
-              if (isGroup) {
-                final dbHelper = DatabaseHelper();
-                final members = await dbHelper.getParticipantsByChat(widget.chatId);
-                membersCount = members.length;
-                memberNames = members.map((u) => u.name).toList();
-              }
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatInfoScreen(
-                    chatName: widget.chatName,
-                    photoUrl: photoUrl,
-                    membersCount: membersCount,
-                    isGroup: isGroup,
-                    memberNames: memberNames,
+          title: _isSearching
+              ? TextField(
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Buscar mensajes...',
+                    border: InputBorder.none,
+                  ),
+                  style: const TextStyle(fontSize: 18),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                      _filterMessages();
+                    });
+                  },
+                )
+              : GestureDetector(
+                  onTap: () async {
+                    int membersCount = 1;
+                    String? photoUrl;
+                    bool isGroup = widget.chatId.startsWith('group_');
+                    List<String> memberNames = [];
+                    if (isGroup) {
+                      final dbHelper = DatabaseHelper();
+                      final members = await dbHelper.getParticipantsByChat(widget.chatId);
+                      membersCount = members.length;
+                      memberNames = members.map((u) => u.name).toList();
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatInfoScreen(
+                          chatName: widget.chatName,
+                          photoUrl: photoUrl,
+                          membersCount: membersCount,
+                          isGroup: isGroup,
+                          memberNames: memberNames,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: const Color(0xFF229ED9),
+                        radius: 18,
+                        child: Text(
+                          widget.chatName.isNotEmpty ? widget.chatName[0].toUpperCase() : '',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.chatName,
+                        style: const TextStyle(
+                          color: Color(0xFF222B45),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF229ED9),
-                  radius: 18,
-                  child: Text(
-                    widget.chatName.isNotEmpty ? widget.chatName[0].toUpperCase() : '',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  widget.chatName,
-                  style: const TextStyle(
-                    color: Color(0xFF222B45),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: const [
-            Icon(Icons.search, color: Color(0xFF229ED9)),
-            SizedBox(width: 16),
+          actions: [
+            if (_isSearching)
+              IconButton(
+                icon: const Icon(Icons.close, color: Color(0xFF229ED9)),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = false;
+                    _searchQuery = '';
+                    _filterMessages();
+                  });
+                },
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.search, color: Color(0xFF229ED9)),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = true;
+                  });
+                },
+              ),
+            const SizedBox(width: 16),
           ],
         ),
         body: Column(
@@ -336,9 +385,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   : ListView.builder(
                       reverse: false,
                       padding: const EdgeInsets.only(top: 12, bottom: 8),
-                      itemCount: messages.length,
+                      itemCount: _filteredMessages.length,
                       itemBuilder: (context, index) {
-                        final msg = messages[index];
+                        final msg = _filteredMessages[index];
                         bool isMe = msg.senderId == currentUser!.id;
                         return _buildMessage(msg, isMe);
                       },
