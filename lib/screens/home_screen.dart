@@ -82,6 +82,11 @@ void initState() {
     await dbHelper.insertChat(chat);
     await dbHelper.addParticipantToChat(chat.id, 'current_user');
     for (var p in participants) {
+      await dbHelper.insertUserByFields(
+        id: p,
+        name: p,
+        phone: '', // o un número real si lo tienes
+      );
       await dbHelper.addParticipantToChat(chat.id, p);
     }
     loadChats();
@@ -89,6 +94,12 @@ void initState() {
 
   void startConversation(String contact) async {
     final dbHelper = DatabaseHelper();
+    // Inserta el usuario si no existe
+    await dbHelper.insertUserByFields(
+      id: contact,
+      name: contact,
+      phone: '', // o un número real si lo tienes
+    );
     // Buscar si ya existe un chat individual con ese contacto
     final existingChats = chats.where((chat) =>
         !chat.id.startsWith('group_') &&
