@@ -21,6 +21,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSearching = false;
   String _searchText = '';
   TextEditingController _searchController = TextEditingController();
+  Set<String> selectedChatIds = {}; // IDs de chats seleccionados
+  bool isSelectionMode = false;
 
   @override
 void initState() {
@@ -297,39 +299,72 @@ void initState() {
   }
 
   Widget _buildChatTile(Chat chat) {
-    String lastMessage = chat.lastMessage?.isNotEmpty == true
-        ? chat.lastMessage!
-        : "Sin mensajes aún";
-    // Formatea la hora del último mensaje
-    String time = "";
-if (chat.lastMessageTime != null && chat.lastMessageTime != 0) {
-  final date = DateTime.fromMillisecondsSinceEpoch(chat.lastMessageTime!);
-  time = "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
-}
-
-    int unreadCount = 0; // Puedes cambiarlo según tu lógica
+    bool selected = selectedChatIds.contains(chat.id);
 
     return GestureDetector(
-      onLongPress: () => _showChatOptions(chat),
+      onLongPress: () {
+        setState(() {
+          isSelectionMode = true;
+          selectedChatIds.add(chat.id);
+        });
+      },
+      onTap: () {
+        if (isSelectionMode) {
+          setState(() {
+            if (selected) {
+              selectedChatIds.remove(chat.id);
+              if (selectedChatIds.isEmpty) isSelectionMode = false;
+            } else {
+              selectedChatIds.add(chat.id);
+            }
+          });
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
+            ),
+          ).then((_) => loadChats());
+        }
+      },
       child: Card(
         elevation: 0,
         margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
         ),
+        color: selected ? const Color(0xFFE3F4FB) : Colors.white,
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          leading: CircleAvatar(
-            radius: 26,
-            backgroundColor: const Color(0xFF229ED9),
-            child: Text(
-              chat.name.isNotEmpty ? chat.name[0].toUpperCase() : '',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
+          leading: Stack(
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: const Color(0xFF229ED9),
+                child: Text(
+                  chat.name.isNotEmpty ? chat.name[0].toUpperCase() : '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                ),
               ),
-            ),
+              if (selected)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF229ED9),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    padding: const EdgeInsets.all(2),
+                    child: const Icon(Icons.check, color: Colors.white, size: 18),
+                  ),
+                ),
+            ],
           ),
           title: Text(
             chat.name,
@@ -340,7 +375,7 @@ if (chat.lastMessageTime != null && chat.lastMessageTime != 0) {
             ),
           ),
           subtitle: Text(
-            lastMessage,
+            chat.lastMessage?.isNotEmpty == true ? chat.lastMessage! : "Sin mensajes aún",
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -350,46 +385,34 @@ if (chat.lastMessageTime != null && chat.lastMessageTime != 0) {
           ),
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                time,
-                style: TextStyle(
-                  color: unreadCount > 0 ? const Color(0xFF229ED9) : Colors.grey,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (unreadCount > 0)
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF229ED9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    unreadCount.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+              if (chat.lastMessageTime != null)
+                Text(
+                  _formatTime(chat.lastMessageTime!),
+                  style: const TextStyle(
+                    color: Color(0xFF7B8D93),
+                    fontSize: 13,
                   ),
                 ),
+              // Puedes agregar aquí un badge de mensajes no leídos si lo deseas
             ],
           ),
-          onTap: () async {
-  await Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ChatScreen(chatId: chat.id, chatName: chat.name),
-    ),
-  );
-  loadChats(); // <-- Esto refresca la lista al volver del chat
-},
         ),
       ),
     );
+  }
+
+  String _formatTime(int timestamp) {
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+      // Show hour and minute if today
+      return "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+    } else {
+      // Show day/month
+      return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}";
+    }
   }
 
   // The _buildContactTile method has been removed because HomeScreen does not have an onSelect property or method.
@@ -405,66 +428,68 @@ if (chat.lastMessageTime != null && chat.lastMessageTime != 0) {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: GestureDetector(
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProfileScreen(
-                    initialName: userName,
-                    initialPhone: 'TuTeléfono', // Aquí pon el número real si lo tienes
-                    photoUrl: userPhotoUrl,
-                  ),
-                ),
-              );
-              if (result != null && result is Map) {
-                setState(() {
-                  userName = result['name'] ?? userName;
-                  userPhone = result['phone'] ?? userPhone; // <-- agrega esto
-                });
-              }
-            },
-            child: userPhotoUrl != null
-                ? CircleAvatar(
-                    backgroundImage: NetworkImage(userPhotoUrl!),
-                    radius: 20,
-                  )
-                : CircleAvatar(
-                    backgroundColor: const Color(0xFF229ED9),
-                    radius: 20,
-                    child: Text(
-                      userName.isNotEmpty ? userName[0].toUpperCase() : '',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-          ),
-        ),
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Buscar conversación...',
-                  border: InputBorder.none,
-                ),
-                style: const TextStyle(
-                  color: Color(0xFF222B45),
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-                onChanged: (value) {
+        leading: isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close, color: Color(0xFF229ED9)),
+                onPressed: () {
                   setState(() {
-                    _searchText = value;
+                    isSelectionMode = false;
+                    selectedChatIds.clear();
                   });
                 },
               )
-            : const Text(
+            : // ...tu avatar como antes...
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: GestureDetector(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileScreen(
+                          initialName: userName,
+                          initialPhone: 'TuTeléfono', // Aquí pon el número real si lo tienes
+                          photoUrl: userPhotoUrl,
+                        ),
+                      ),
+                    );
+                    if (result != null && result is Map) {
+                      setState(() {
+                        userName = result['name'] ?? userName;
+                        userPhone = result['phone'] ?? userPhone; // <-- agrega esto
+                      });
+                    }
+                  },
+                  child: userPhotoUrl != null
+                      ? CircleAvatar(
+                          backgroundImage: NetworkImage(userPhotoUrl!),
+                          radius: 20,
+                        )
+                      : CircleAvatar(
+                          backgroundColor: const Color(0xFF229ED9),
+                          radius: 20,
+                          child: Text(
+                            userName.isNotEmpty ? userName[0].toUpperCase() : '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+        title: isSelectionMode
+            ? Text(
+                '${selectedChatIds.length} seleccionados',
+                style: const TextStyle(
+                  color: Color(0xFF222B45),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              )
+            : // ...tu título normal...
+              const Text(
                 'Free Mess',
                 style: TextStyle(
                   color: Color(0xFF222B45),
@@ -472,34 +497,151 @@ if (chat.lastMessageTime != null && chat.lastMessageTime != 0) {
                   fontSize: 24,
                 ),
               ),
-        actions: [
-          if (_isSearching)
-            IconButton(
-              icon: const Icon(Icons.close, color: Color(0xFF229ED9)),
-              onPressed: () {
-                setState(() {
-                  _isSearching = false;
-                  _searchText = '';
-                  _searchController.clear();
-                });
-              },
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.search, color: Color(0xFF229ED9)),
-              onPressed: () {
-                setState(() {
-                  _isSearching = true;
-                });
-              },
-            ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Color(0xFF229ED9)),
-            onPressed: () {
-              // Menú de opciones
-            },
-          ),
-        ],
+        actions: isSelectionMode
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.push_pin, color: Color(0xFF229ED9)),
+                  onPressed: () {
+                    // Acción de fijar
+                    _showCustomSnackBar('Conversaciones fijadas', icon: Icons.push_pin);
+                    // Aquí tu lógica para fijar
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.block, color: Colors.redAccent),
+                  onPressed: () {
+                    // Acción de bloquear
+                    _showCustomSnackBar('Conversaciones bloqueadas', icon: Icons.block);
+                    // Aquí tu lógica para bloquear
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => Dialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        backgroundColor: Colors.white,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.delete, color: Colors.red, size: 48),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Eliminar chats',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF222B45),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                selectedChatIds.length == 1
+                                    ? '¿Seguro que deseas eliminar esta conversación?'
+                                    : '¿Seguro que deseas eliminar estas ${selectedChatIds.length} conversaciones?',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF7B8D93),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFF229ED9),
+                                        side: const BorderSide(color: Color(0xFF229ED9)),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                      ),
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Cancelar'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                      ),
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text(
+                                        'Eliminar',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                    if (confirm == true) {
+                      for (var chatId in selectedChatIds) {
+                        await _deleteChat(chats.firstWhere((c) => c.id == chatId));
+                      }
+                      setState(() {
+                        isSelectionMode = false;
+                        selectedChatIds.clear();
+                      });
+                      _showCustomSnackBar(
+                        selectedChatIds.length == 1
+                          ? 'Conversación eliminada'
+                          : 'Conversaciones eliminadas',
+                        icon: Icons.delete,
+                      );
+                    }
+                  },
+                ),
+              ]
+            : [
+                if (_isSearching)
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Color(0xFF229ED9)),
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = false;
+                        _searchText = '';
+                        _searchController.clear();
+                      });
+                    },
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.search, color: Color(0xFF229ED9)),
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = true;
+                      });
+                    },
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.more_vert, color: Color(0xFF229ED9)),
+                  onPressed: () {
+                    // Menú de opciones
+                  },
+                ),
+              ],
         iconTheme: const IconThemeData(color: Color(0xFF229ED9)),
       ),
       body: filteredChats.isEmpty
