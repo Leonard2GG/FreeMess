@@ -56,6 +56,9 @@ class DatabaseHelper {
   if (oldVersion < 6) {
     await db.execute("ALTER TABLE chats ADD COLUMN lastMessageTime INTEGER");
   }
+  if (oldVersion < 7) {
+    await db.execute("ALTER TABLE chats ADD COLUMN isPinned INTEGER DEFAULT 0");
+  }
 }
 
   // CRUD Usuarios
@@ -213,5 +216,15 @@ class DatabaseHelper {
     });
     // También puedes agregar el usuario a la tabla de participantes si tienes una
     return id;
+  }
+
+  Future<void> setChatPinned(String chatId, bool pinned) async {
+    final db = await this.db;
+    await db.update(
+      'chats',
+      {'isPinned': pinned ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [chatId],
+    );
   }
 }

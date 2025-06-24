@@ -3,7 +3,8 @@ class Chat {
   final String name;
   final int timestamp;
   String? lastMessage;
-  int? lastMessageTime; // <-- Agrega esto
+  int? lastMessageTime;
+  bool isPinned; // <-- agrega esto
 
   Chat({
     required this.id,
@@ -11,29 +12,29 @@ class Chat {
     required this.timestamp,
     this.lastMessage,
     this.lastMessageTime,
+    this.isPinned = false, // <-- valor por defecto
   });
 
-  factory Chat.fromMap(Map<String, dynamic> map) {
-    return Chat(
-      id: map['id'],
-      name: map['name'],
-      timestamp: map['timestamp'] is int
-          ? map['timestamp']
-          : int.tryParse(map['timestamp']?.toString() ?? '0') ?? 0,
-      lastMessage: map['lastMessage'],
-      lastMessageTime: map['lastMessageTime'] is int
-          ? map['lastMessageTime']
-          : int.tryParse(map['lastMessageTime']?.toString() ?? '0'),
-    );
-  }
+  // Asegúrate de incluir isPinned en fromMap y toMap
+  factory Chat.fromMap(Map<String, dynamic> map) => Chat(
+        id: map['id'],
+        name: map['name'],
+        timestamp: map['timestamp'] is int
+            ? map['timestamp']
+            : int.tryParse(map['timestamp']?.toString() ?? '0') ?? 0,
+        lastMessage: map['lastMessage'],
+        lastMessageTime: map['lastMessageTime'] is int
+            ? map['lastMessageTime']
+            : int.tryParse(map['lastMessageTime']?.toString() ?? '0'),
+        isPinned: map['isPinned'] == 1,
+      );
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'timestamp': timestamp,
-      'lastMessage': lastMessage,
-      'lastMessageTime': lastMessageTime,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'name': name,
+        'timestamp': timestamp,
+        'lastMessage': lastMessage,
+        'lastMessageTime': lastMessageTime,
+        'isPinned': isPinned ? 1 : 0,
+      };
 }

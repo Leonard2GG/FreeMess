@@ -57,8 +57,13 @@ void initState() {
     }
 
     // Ordena los chats por la hora del último mensaje (o por timestamp si no hay mensajes)
-    chats.sort((a, b) =>
-      (b.lastMessageTime ?? b.timestamp).compareTo(a.lastMessageTime ?? a.timestamp));
+    chats.sort((a, b) {
+      // Primero, los fijados arriba
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      // Si ambos son fijados o ambos no, ordena por último mensaje/creación
+      return (b.lastMessageTime ?? b.timestamp).compareTo(a.lastMessageTime ?? a.timestamp);
+    });
     setState(() {});
   }
 
@@ -261,11 +266,17 @@ void initState() {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.push_pin, color: Color(0xFF229ED9)),
-                title: const Text('Fijar'),
-                onTap: () {
+                leading: Icon(Icons.push_pin, color: Color(0xFF229ED9)),
+                title: Text(chat.isPinned ? 'Desfijar' : 'Fijar'),
+                onTap: () async {
                   Navigator.pop(context);
-                  _showCustomSnackBar('Conversación fijada', icon: Icons.push_pin);
+                  final dbHelper = DatabaseHelper();
+                  await dbHelper.setChatPinned(chat.id, !chat.isPinned);
+                  loadChats();
+                  _showCustomSnackBar(
+                    chat.isPinned ? 'Conversación desfijada' : 'Conversación fijada',
+                    icon: Icons.push_pin,
+                  );
                 },
               ),
               ListTile(
@@ -295,7 +306,6 @@ void initState() {
     final dbHelper = DatabaseHelper();
     await dbHelper.deleteChat(chat.id);
     loadChats();
-    _showCustomSnackBar('Conversación eliminada', icon: Icons.delete);
   }
 
   Widget _buildChatTile(Chat chat) {
@@ -353,7 +363,7 @@ void initState() {
               if (selected)
                 Positioned(
                   bottom: 0,
-                  right: 0,
+                  left: 0,
                   child: Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF229ED9),
@@ -362,6 +372,19 @@ void initState() {
                     ),
                     padding: const EdgeInsets.all(2),
                     child: const Icon(Icons.check, color: Colors.white, size: 18),
+                  ),
+                ),
+              if (chat.isPinned)
+                Positioned(
+                  bottom: 0,
+                  right: 0, // <-- Cambiado a right
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(2),
+                    child: const Icon(Icons.push_pin, color: Colors.grey, size: 18),
                   ),
                 ),
             ],
@@ -399,8 +422,8 @@ void initState() {
             ],
           ),
         ),
-      ),
-    );
+        ),
+      );
   }
 
   String _formatTime(int timestamp) {
@@ -488,31 +511,73 @@ void initState() {
                   fontSize: 20,
                 ),
               )
-            : // ...tu título normal...
-              const Text(
-                'Free Mess',
-                style: TextStyle(
-                  color: Color(0xFF222B45),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                ),
-              ),
+            : _isSearching
+                ? TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar...',
+                      border: InputBorder.none,
+                    ),
+                    style: const TextStyle(fontSize: 18),
+                    onChanged: (value) {
+                      setState(() {
+                        _searchText = value;
+                      });
+                    },
+                  )
+                : const Text(
+                    'Free Mess',
+                    style: TextStyle(
+                      color: Color(0xFF222B45),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
+                  ),
         actions: isSelectionMode
             ? [
                 IconButton(
-                  icon: const Icon(Icons.push_pin, color: Color(0xFF229ED9)),
-                  onPressed: () {
-                    // Acción de fijar
-                    _showCustomSnackBar('Conversaciones fijadas', icon: Icons.push_pin);
-                    // Aquí tu lógica para fijar
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.block, color: Colors.redAccent),
-                  onPressed: () {
-                    // Acción de bloquear
-                    _showCustomSnackBar('Conversaciones bloqueadas', icon: Icons.block);
-                    // Aquí tu lógica para bloquear
+                  icon: Icon(
+                    // Si TODOS los seleccionados están fijados, muestra el icono de "desfijar"
+                    selectedChatIds.isNotEmpty && selectedChatIds.every((id) => chats.firstWhere((c) => c.id == id).isPinned)
+                      ? Icons.push_pin_outlined // Puedes usar otro icono si prefieres
+                      : Icons.push_pin,
+                    color: Color(0xFF229ED9),
+                  ),
+                  tooltip: selectedChatIds.isNotEmpty && selectedChatIds.every((id) => chats.firstWhere((c) => c.id == id).isPinned)
+                      ? 'Desfijar'
+                      : 'Fijar',
+                  onPressed: () async {
+                    final dbHelper = DatabaseHelper();
+                    final hasUnpinned = selectedChatIds.any((id) => !(chats.firstWhere((c) => c.id == id).isPinned));
+                    if (hasUnpinned) {
+                      // Fijar todos los seleccionados
+                      for (var chatId in selectedChatIds) {
+                        await dbHelper.setChatPinned(chatId, true);
+                      }
+                      _showCustomSnackBar(
+                        selectedChatIds.length == 1
+                            ? 'Conversación fijada'
+                            : 'Conversaciones fijadas',
+                        icon: Icons.push_pin,
+                      );
+                    } else {
+                      // Todos están fijados, así que desfijar
+                      for (var chatId in selectedChatIds) {
+                        await dbHelper.setChatPinned(chatId, false);
+                      }
+                      _showCustomSnackBar(
+                        selectedChatIds.length == 1
+                            ? 'Conversación desfijada'
+                            : 'Conversaciones desfijadas',
+                        icon: Icons.push_pin_outlined, // Icono de desfijar
+                      );
+                    }
+                    setState(() {
+                      isSelectionMode = false;
+                      selectedChatIds.clear();
+                    });
+                    loadChats();
                   },
                 ),
                 IconButton(
