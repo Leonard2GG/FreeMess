@@ -455,16 +455,35 @@ void _filterMessages() {
                       },
                     )
                   : GestureDetector(
-                      onTap: () {
-                        // Abre la info del contacto/grupo
+                      onTap: () async {
+                        final dbHelper = DatabaseHelper();
+
+                        // Obtén los participantes del chat (esto debe devolver una lista de IDs de usuario)
+                        final participants = await dbHelper.getParticipantsByChat(widget.chatId);
+
+                        // Obtén la información de cada participante
+                        List<String> memberNames = [];
+                        List<String> memberPhones = [];
+                        for (var participant in participants) {
+                          // Si participant es AppUser:
+                          final userId = participant is AppUser ? participant.id : participant.toString();
+                          final user = await dbHelper.getUser(userId);
+                          memberNames.add(user?['name'] ?? userId);
+                          memberPhones.add(user?['phone'] ?? '');
+                        }
+
+                        // Determina si es grupo o chat individual
+                        bool isGroup = participants.length > 2;
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => ChatInfoScreen(
                               chatName: widget.chatName,
-                              membersCount: 1, // Reemplaza con el valor real si lo tienes
-                              isGroup: false,  // Reemplaza con el valor real si lo tienes
-                              // Pasa aquí los demás datos necesarios
+                              membersCount: participants.length,
+                              isGroup: isGroup,
+                              memberNames: memberNames,
+                              memberPhones: memberPhones,
                             ),
                           ),
                         );
