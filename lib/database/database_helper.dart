@@ -28,7 +28,7 @@ class DatabaseHelper {
       path,
       version: DB_VERSION,
       onCreate: _onCreate,
-      onUpgrade: _onUpgrade, // <-- agrega esto
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -40,26 +40,10 @@ class DatabaseHelper {
   }
 
   void _onUpgrade(Database db, int oldVersion, int newVersion) async {
-  if (oldVersion < 2) {
-    await db.execute("ALTER TABLE messages ADD COLUMN status TEXT");
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE chats ADD COLUMN lastMessageTime INTEGER");
+    }
   }
-  if (oldVersion < 3) {
-    await db.execute("ALTER TABLE chats ADD COLUMN timestamp INTEGER");
-  }
-  if (oldVersion < 4) {
-    await db.execute("ALTER TABLE users ADD COLUMN phone TEXT");
-  }
-  if (oldVersion < 5) {
-    await db.execute("ALTER TABLE chats ADD COLUMN lastMessage TEXT");
-  }
-  // Agrega esto para la columna lastMessageTime en chats
-  if (oldVersion < 6) {
-    await db.execute("ALTER TABLE chats ADD COLUMN lastMessageTime INTEGER");
-  }
-  if (oldVersion < 7) {
-    await db.execute("ALTER TABLE chats ADD COLUMN isPinned INTEGER DEFAULT 0");
-  }
-}
 
   // CRUD Usuarios
   Future<void> insertUser(AppUser user) async {

@@ -1,2 +1,2 @@
 const String DB_NAME = 'free_mess.db';
-const int DB_VERSION = 7;
+const int DB_VERSION = 1;

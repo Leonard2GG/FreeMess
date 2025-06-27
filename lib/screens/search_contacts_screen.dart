@@ -37,7 +37,8 @@ class _SearchContactsScreenState extends State<SearchContactsScreen> {
   Widget _buildContactTile(String contact) {
     return GestureDetector(
       onTap: () {
-        widget.onSelect(contact);
+        widget.onSelect(contact); // Llama al callback para crear la conversación
+        Navigator.pop(context);   // Cierra la pantalla de búsqueda
       },
       child: Card(
         elevation: 0,

@@ -22,6 +22,7 @@ class Tables {
       id TEXT PRIMARY KEY,
       name TEXT,
       lastMessage TEXT,
+      lastMessageTime INTEGER,
       timestamp INTEGER,
       isPinned INTEGER DEFAULT 0
     )

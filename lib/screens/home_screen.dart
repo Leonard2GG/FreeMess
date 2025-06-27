@@ -179,11 +179,11 @@ void initState() {
                       builder: (context) => SearchContactsScreen(
                         onSelect: (contact) async {
                           final dbHelper = DatabaseHelper();
+                          // No hagas Navigator.pop(context) aquí
                           final existingChats = chats.where((chat) =>
                             !chat.id.startsWith('group_') &&
                             (chat.name == contact || chat.name == userName)
                           );
-                          Navigator.pop(context); // Cierra SearchContactsScreen
                           if (existingChats.isNotEmpty) {
                             final chat = existingChats.first;
                             Navigator.push(
