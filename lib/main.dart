@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  var databasesPath = await getDatabasesPath();
+  await deleteDatabase(join(databasesPath, 'free_mess.db')); // Usa el nombre real de tu DB
   runApp(const MyApp());
 }
 
