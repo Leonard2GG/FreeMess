@@ -700,12 +700,6 @@ void initState() {
                       });
                     },
                   ),
-                IconButton(
-                  icon: const Icon(Icons.more_vert, color: Color(0xFF229ED9)),
-                  onPressed: () {
-                    // Menú de opciones
-                  },
-                ),
               ],
         iconTheme: const IconThemeData(color: Color(0xFF229ED9)),
       ),
